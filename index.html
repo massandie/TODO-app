@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — Gestion de tâches</title>
+
+  <!-- Icônes Lucide (CDN, sans framework JS) -->
+  <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.js" defer></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===================== AUTHENTIFICATION ===================== -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo"><i data-lucide="zap"></i></div>
+        <span class="brand-name">TaskFlow</span>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login" type="button">Connexion</button>
+        <button class="auth-tab" data-tab="register" type="button">Inscription</button>
+      </div>
+
+      <!-- Connexion -->
+      <form id="loginForm" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="loginEmail">Adresse email</label>
+          <input type="email" id="loginEmail" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Mot de passe</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <span class="field-error" id="loginError"></span>
+        <button type="submit" class="btn btn-primary auth-submit">Se connecter</button>
+      </form>
+
+      <!-- Inscription -->
+      <form id="registerForm" class="auth-form" hidden novalidate>
+        <div class="form-group">
+          <label for="registerName">Nom complet</label>
+          <input type="text" id="registerName" placeholder="Jane Dupont" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="registerEmail">Adresse email</label>
+          <input type="email" id="registerEmail" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Mot de passe</label>
+          <input type="password" id="registerPassword" placeholder="6 caractères minimum" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="registerConfirm">Confirmer le mot de passe</label>
+          <input type="password" id="registerConfirm" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <span class="field-error" id="registerError"></span>
+        <button type="submit" class="btn btn-primary auth-submit">Créer mon compte</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Overlay mobile pour fermer la sidebar -->
+  <div class="overlay" id="overlay"></div>
+
+  <div class="app" id="appRoot" hidden>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo"><i data-lucide="zap"></i></div>
+        <span class="brand-name">TaskFlow</span>
+        <button class="sidebar-close" id="sidebarClose" aria-label="Fermer le menu">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <p class="nav-section-title">Menu</p>
+        <button class="nav-item active" data-view="dashboard">
+          <i data-lucide="layout-dashboard"></i> <span>Tableau de bord</span>
+        </button>
+        <button class="nav-item" data-view="all">
+          <i data-lucide="list-checks"></i> <span>Toutes les tâches</span>
+        </button>
+        <button class="nav-item" data-view="active">
+          <i data-lucide="circle-dashed"></i> <span>Tâches actives</span>
+        </button>
+        <button class="nav-item" data-view="completed">
+          <i data-lucide="check-circle-2"></i> <span>Tâches terminées</span>
+        </button>
+
+        <p class="nav-section-title">Organisation</p>
+        <button class="nav-item" data-view="categories">
+          <i data-lucide="folder-kanban"></i> <span>Catégories</span>
+        </button>
+        <button class="nav-item" data-view="stats">
+          <i data-lucide="bar-chart-3"></i> <span>Statistiques</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="theme-toggle" id="themeToggle">
+          <i data-lucide="moon" id="themeIcon"></i>
+          <span id="themeLabel">Mode sombre</span>
+        </button>
+        <button class="theme-toggle" id="logoutBtn">
+          <i data-lucide="log-out"></i>
+          <span>Déconnexion</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN ===================== -->
+    <main class="main">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-btn" id="menuBtn" aria-label="Ouvrir le menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="header-greeting">
+            <h1 id="greetingText">Bonjour, prêt à accomplir vos objectifs ?</h1>
+            <p class="header-date" id="headerDate"></p>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="search-bar">
+            <i data-lucide="search"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher une tâche...">
+          </div>
+          <button class="btn btn-primary" id="newTaskBtn">
+            <i data-lucide="plus"></i> <span>Nouvelle tâche</span>
+          </button>
+          <div class="avatar" id="avatar" title="Utilisateur">U</div>
+        </div>
+      </header>
+
+      <!-- Dashboard stats -->
+      <section class="dashboard" id="dashboard">
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--total"><i data-lucide="list-todo"></i></div>
+          <div class="stat-info">
+            <span class="stat-value" id="statTotal">0</span>
+            <span class="stat-label">Tâches totales</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--done"><i data-lucide="check-circle-2"></i></div>
+          <div class="stat-info">
+            <span class="stat-value" id="statDone">0</span>
+            <span class="stat-label">Terminées</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon--pending"><i data-lucide="hourglass"></i></div>
+          <div class="stat-info">
+            <span class="stat-value" id="statPending">0</span>
+            <span class="stat-label">Restantes</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--progress">
+          <div class="stat-progress-head">
+            <span class="stat-label">Progression</span>
+            <span class="stat-progress-value" id="statProgressValue">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Toolbar : filtres -->
+      <section class="toolbar">
+        <div class="toolbar-group" id="filterCategory">
+          <label for="categoryFilter">Catégorie</label>
+          <select id="categoryFilter">
+            <option value="all">Toutes</option>
+            <option value="travail">Travail</option>
+            <option value="personnel">Personnel</option>
+            <option value="etudes">Études</option>
+            <option value="sante">Santé</option>
+            <option value="maison">Maison</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group">
+          <label for="priorityFilter">Priorité</label>
+          <select id="priorityFilter">
+            <option value="all">Toutes</option>
+            <option value="high">Élevée</option>
+            <option value="medium">Moyenne</option>
+            <option value="low">Faible</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group">
+          <label for="sortSelect">Trier par</label>
+          <select id="sortSelect">
+            <option value="date-asc">Date (proche)</option>
+            <option value="date-desc">Date (lointaine)</option>
+            <option value="priority">Priorité</option>
+            <option value="created">Création</option>
+          </select>
+        </div>
+
+        <button class="btn btn-ghost" id="clearCompletedBtn">
+          <i data-lucide="trash-2"></i> <span>Vider les terminées</span>
+        </button>
+      </section>
+
+      <!-- Liste des tâches -->
+      <section class="tasks-section">
+        <div class="tasks-head">
+          <h2 id="viewTitle">Toutes les tâches</h2>
+          <span class="tasks-count" id="tasksCount">0 tâche</span>
+        </div>
+
+        <div class="task-list" id="taskList"></div>
+
+        <div class="empty-state" id="emptyState" hidden>
+          <i data-lucide="inbox"></i>
+          <h3>Aucune tâche ici</h3>
+          <p>Ajoutez une nouvelle tâche pour commencer à organiser votre journée.</p>
+        </div>
+      </section>
+
+      <!-- Vue Catégories -->
+      <section class="categories-view" id="categoriesView" hidden>
+        <h2>Catégories</h2>
+        <div class="categories-grid" id="categoriesGrid"></div>
+      </section>
+
+      <!-- Vue Statistiques -->
+      <section class="stats-view" id="statsView" hidden>
+        <h2>Statistiques</h2>
+        <div class="stats-grid">
+          <div class="stats-block">
+            <h3>Répartition par priorité</h3>
+            <div id="priorityBars" class="bar-list"></div>
+          </div>
+          <div class="stats-block">
+            <h3>Répartition par catégorie</h3>
+            <div id="categoryBars" class="bar-list"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ===================== MODAL TÂCHE ===================== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle">Nouvelle tâche</h2>
+        <button class="modal-close" id="modalClose" aria-label="Fermer"><i data-lucide="x"></i></button>
+      </div>
+
+      <form id="taskForm" class="modal-body" novalidate>
+        <input type="hidden" id="taskId">
+
+        <div class="form-group">
+          <label for="taskTitle">Titre <span class="required">*</span></label>
+          <input type="text" id="taskTitle" placeholder="Ex. Préparer la présentation client" maxlength="120">
+          <span class="field-error" id="titleError"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="taskDescription">Description</label>
+          <textarea id="taskDescription" rows="3" placeholder="Détails facultatifs..." maxlength="500"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="taskCategory">Catégorie</label>
+            <select id="taskCategory">
+              <option value="travail">Travail</option>
+              <option value="personnel">Personnel</option>
+              <option value="etudes">Études</option>
+              <option value="sante">Santé</option>
+              <option value="maison">Maison</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="taskPriority">Priorité</label>
+            <select id="taskPriority">
+              <option value="low">Faible</option>
+              <option value="medium" selected>Moyenne</option>
+              <option value="high">Élevée</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="taskDueDate">Date limite</label>
+          <input type="date" id="taskDueDate">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== CONFIRM DIALOG ===================== -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box" role="alertdialog" aria-modal="true">
+      <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+      <h3 id="confirmTitle">Confirmer la suppression</h3>
+      <p id="confirmMessage">Cette action est irréversible. Voulez-vous continuer ?</p>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" id="confirmCancel">Annuler</button>
+        <button class="btn btn-danger" id="confirmOk">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TOASTS ===================== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
